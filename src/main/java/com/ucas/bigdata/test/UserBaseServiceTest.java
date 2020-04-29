@@ -16,7 +16,7 @@ public class UserBaseServiceTest {
     public static void main(String [] args) throws IOException {
         CloseableHttpClient httpClient = HttpClients.createDefault();
         try {
-            URI uri = new URI("http", null, "localhost.charlesproxy.com", 8080, "/getJson", "", null);
+            URI uri = new URI("http", null, "127.0.0.1", 8080, "/getJson", "", null);
             HttpPost post = new HttpPost(uri);
             InfoRequest.Builder builder = InfoRequest.newBuilder();
             builder.setData("me");
