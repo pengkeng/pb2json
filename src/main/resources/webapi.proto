@@ -3,7 +3,7 @@ option java_package = "com.ucas.bigdata.proto";     // 指定包名
 option java_outer_classname = "WebApi"; // 指定类名
 message InfoRequest {
     string schema = 1;
-    string data = 2;
+    bytes data = 2;
 }
 message InfoResponse {
     int32 code = 1;
