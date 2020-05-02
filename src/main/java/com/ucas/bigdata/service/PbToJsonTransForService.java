@@ -1,9 +1,8 @@
-package com.ucas.bigdata.service;
+package com.example.ucas;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import com.googlecode.protobuf.format.JsonFormat;
-import com.ucas.bigdata.proto.WebApi;
 import org.springframework.stereotype.Service;
 
 import javax.tools.JavaCompiler;
@@ -13,14 +12,18 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
+
+import static java.lang.ClassLoader.getSystemClassLoader;
 
 @Service
 public class PbToJsonTransForService {
 
-    private final String DIR = System.getProperty("user.dir");
-    private final String SRC_DIR = DIR + "/src/main/resources";
-    private final String DST_DIR = DIR + "/src/main/java";
-    private final String PACKAGE_DIR = DST_DIR + "/com/ucas/bigdata/proto";
+    private final String DIR = "/Users/pqc/Desktop";
+    private final String SRC_DIR = DIR;
+    private final String DST_DIR = DIR;
+    private final String PACKAGE_DIR = DST_DIR;
     private String className;
     public static String CLASS_COMPILER_FAIL = "Compiler fail";
     public static String GENERATE_JAVA_FAIL = "generate Java fail";
@@ -40,7 +43,7 @@ public class PbToJsonTransForService {
             } else if (UNKNOW_FAIL.equals(json)) {
                 builder.setMsg(UNKNOW_FAIL);
                 builder.setCode(502);
-            } else{
+            } else {
                 builder.setCode(200);
                 builder.setMsg("success");
                 builder.setData(json);
@@ -59,16 +62,19 @@ public class PbToJsonTransForService {
             File javaFile = new File(PACKAGE_DIR + "/" + className + ".java");
             if (javaFile.exists()) {
                 JavaCompiler javac = ToolProvider.getSystemJavaCompiler();
-                int status = javac.run(null, null, null, "-d", System.getProperty("user.dir") + "/target/classes", PACKAGE_DIR + "/" + className + ".java");
+                int status = javac.run(null, null, null, "-d", DIR, DIR + "/" + className + ".java");
                 if (status == 0) {
                     Class<?> schemaClass = null;
-                    schemaClass = ClassLoader.getSystemClassLoader().loadClass("com.ucas.bigdata.proto." + className).getClasses()[0];
+
+                    URL[] urls = {new URL("file:"+DIR +"/")};
+                    URLClassLoader urlPathClassLoader = new URLClassLoader(urls, getSystemClassLoader());
+                    schemaClass = urlPathClassLoader.loadClass(className).getClasses()[0];
                     Method method = schemaClass.getDeclaredMethod("parseFrom", ByteString.class);
                     method.setAccessible(true);
                     Message message = (Message) method.invoke(schemaClass, data);
                     String json = new JsonFormat().printToString(message);
-                    File classFile = new File(System.getProperty("user.dir") + "/target/classes/com/ucas/bigdata/proto/" + className + ".class");
-                    javaFile.delete();
+                    File classFile = new File(DIR + "/" + className + ".class");
+//                    javaFile.delete();
                     classFile.delete();
                     schemaFile.delete();
                     return json;
@@ -97,6 +103,8 @@ public class PbToJsonTransForService {
     }
 
     private File createSchemaFile(String schema, String version) throws IOException {
+        System.out.println(this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
+        System.out.println(DIR);
         File file = new File(SRC_DIR + "/PBSchema.proto");
         if (file.exists()) {
             file.delete();
@@ -105,10 +113,11 @@ public class PbToJsonTransForService {
         FileWriter writer = new FileWriter(file, true);
         long time = System.nanoTime();
         className = "PBSchema" + time;
+        String pac = "option java_package = \"com.ucas.bigdata.proto\";\n";
         if ("2".equals(version)) {
-            writer.append("syntax = \"proto2\";\n" + "option java_package = \"com.ucas.bigdata.proto\";\n" + "option java_outer_classname = \"" + className + "\";\n");
+            writer.append("syntax = \"proto2\";\n" + "option java_outer_classname = \"" + className + "\";\n");
         } else if ("3".equals(version)) {
-            writer.append("syntax = \"proto3\";\n" + "option java_package = \"com.ucas.bigdata.proto\";\n" + "option java_outer_classname = \"" + className + "\";\n");
+            writer.append("syntax = \"proto3\";\n" + "option java_outer_classname = \"" + className + "\";\n");
         }
         writer.append(schema);
         writer.flush();
