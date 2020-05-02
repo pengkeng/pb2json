@@ -11,7 +11,7 @@
     <groupId>com.ucas</groupId>
     <artifactId>bigdata</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <packaging>war</packaging>
+    <packaging>jar</packaging>
     <name>Pb2Json</name>
     <description>Demo project for Spring Boot</description>
 

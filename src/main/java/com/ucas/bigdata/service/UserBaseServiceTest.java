@@ -1,8 +1,7 @@
-package com.example.ucas;
+package com.ucas.bigdata.service;
 
-import com.example.ucas.WebApi.InfoRequest;
-import com.example.ucas.WebApi.InfoResponse;
 import com.google.protobuf.ByteString;
+import com.ucas.bigdata.proto.WebApi;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
@@ -22,7 +21,7 @@ public class UserBaseServiceTest {
         try {
             URI uri = new URI("http", null, "127.0.0.1", 8082, "/getJson", "", null);
             HttpPost post = new HttpPost(uri);
-            InfoRequest.Builder builder = InfoRequest.newBuilder();
+            WebApi.InfoRequest.Builder builder = WebApi.InfoRequest.newBuilder();
 
             File file1 = new File(SRC_DIR + "/testSchema.proto");
             StringBuilder stringBuilder = new StringBuilder();
@@ -53,7 +52,7 @@ public class UserBaseServiceTest {
 
             if (response.getStatusLine().getStatusCode() == 200) {
 
-                InfoResponse resp = InfoResponse.parseFrom(response.getEntity().getContent());
+                WebApi.InfoResponse resp = WebApi.InfoResponse.parseFrom(response.getEntity().getContent());
 
                 System.out.println("result:" + resp.getData() + " " + resp.getMsg() + " " + resp.getCode());
             } else {

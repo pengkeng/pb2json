@@ -1,8 +1,9 @@
-package com.example.ucas;
+package com.ucas.bigdata.service;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import com.googlecode.protobuf.format.JsonFormat;
+import com.ucas.bigdata.proto.WebApi;
 import org.springframework.stereotype.Service;
 
 import javax.tools.JavaCompiler;
@@ -12,15 +13,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
-
-import static java.lang.ClassLoader.getSystemClassLoader;
 
 @Service
 public class PbToJsonTransForService {
 
-    private final String DIR = "/Users/pqc/Desktop";
+    public final String DIR = "/Users/pqc/Desktop/class";
     private final String SRC_DIR = DIR;
     private final String DST_DIR = DIR;
     private final String PACKAGE_DIR = DST_DIR;
@@ -62,19 +59,34 @@ public class PbToJsonTransForService {
             File javaFile = new File(PACKAGE_DIR + "/" + className + ".java");
             if (javaFile.exists()) {
                 JavaCompiler javac = ToolProvider.getSystemJavaCompiler();
-                int status = javac.run(null, null, null, "-d", DIR, DIR + "/" + className + ".java");
+                int status = javac.run(null, null, null, "-classpath", DIR + "/" + "protobuf-java-3.10.0.jar", DIR + "/" + className + ".java");
                 if (status == 0) {
                     Class<?> schemaClass = null;
 
-                    URL[] urls = {new URL("file:"+DIR +"/")};
-                    URLClassLoader urlPathClassLoader = new URLClassLoader(urls, getSystemClassLoader());
-                    schemaClass = urlPathClassLoader.loadClass(className).getClasses()[0];
-                    Method method = schemaClass.getDeclaredMethod("parseFrom", ByteString.class);
-                    method.setAccessible(true);
-                    Message message = (Message) method.invoke(schemaClass, data);
-                    String json = new JsonFormat().printToString(message);
+                    schemaClass =  Class.forName( className, true, new MyClassLoader()).getClasses()[0];
+
+//                    URL[] urls = {new URL("file:" + DIR + "/")};
+//                    URLClassLoader urlPathClassLoader = new URLClassLoader(urls, getSystemClassLoader());
+//                    schemaClass = urlPathClassLoader.loadClass(className).getClasses()[0];
+                    System.out.println(schemaClass);
+                    Method[] a = schemaClass.getMethods();
+                    Method method = null;
+                    byte[] byteData = data.toByteArray();
+                    for (int i = 0; i < a.length; i++) {
+                        System.out.println(a[i].getName() + " ");
+                        if (a[i].getParameterTypes().length == 1) {
+                            System.out.println((a[i].getParameterTypes()[0]));
+                        }
+                        if ("parseFrom".equals(a[i].getName()) && a[i].getParameterTypes().length == 1 && "[B".equals(a[i].getParameterTypes()[0].getName())) {
+                            method = a[i];
+                        }
+                    }
+                    System.out.println(method.getName() + " ");
+
+                    Object object =  method.invoke(schemaClass, (Object) byteData);
+                    String json = new JsonFormat().printToString((Message) object);
                     File classFile = new File(DIR + "/" + className + ".class");
-//                    javaFile.delete();
+                    javaFile.delete();
                     classFile.delete();
                     schemaFile.delete();
                     return json;
@@ -84,7 +96,7 @@ public class PbToJsonTransForService {
             } else {
                 return GENERATE_JAVA_FAIL;
             }
-        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+        } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
         }
         return UNKNOW_FAIL;
